@@ -8,13 +8,15 @@ defmodule KV.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: KV.Worker.start_link(arg)
-      # {KV.Worker, arg}
+      {Task.Supervisor, name: KV.TaskSupervisor},
+      Supervisor.child_spec({Task, fn -> KV.Server.accept() end}, restart: :permanent),
+      {DynamicSupervisor, name: KV.BucketSupervisor, strategy: :one_for_one},
+      {KV.Registry, name: KV.Registry}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: KV.Supervisor]
+    opts = [strategy: :one_for_all, name: KV.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end
